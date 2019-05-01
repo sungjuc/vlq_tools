@@ -3,4 +3,4 @@ project(traffic_generator)
 
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(traffic_generator src/traffic.c)
+add_executable(traffic_generator src/traffic.c src/traffic.h src/const.h src/util/thread_pool.h src/util/thread_pool.c)

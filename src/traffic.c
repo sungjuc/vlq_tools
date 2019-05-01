@@ -10,13 +10,15 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include "traffic.h"
+#include "const.h"
+
 void error(const char *msg) {
     perror(msg);
     exit(0);
 }
 
 int main(int argc, char *argv[]) {
-    char *hostname = "scho-ld1.linkedin.biz";
     int portno = 10172;
     int sockfd = 0, n = 0;
     struct hostent *server;
