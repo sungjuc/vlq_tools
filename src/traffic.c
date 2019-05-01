@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <netdb.h>
 
 void error(const char *msg) {
     perror(msg);
@@ -15,11 +16,14 @@ void error(const char *msg) {
 }
 
 int main(int argc, char *argv[]) {
-    char *hostname = "127.0.0.1";
-    int portno = 8080;
+    char *hostname = "scho-ld1.linkedin.biz";
+    int portno = 10172;
     int sockfd = 0, n = 0;
+    struct hostent *server;
     struct sockaddr_in addr;
-    char request[1024], response[4096];
+    char request[1024], response[409600];
+
+    char *request_fmt = "GET /cloudsession/resources/networkSizes/urn:li:member:2?edgeType=MemberToMember&maxDegree=DISTANCE_3 HTTP/1.0\r\n\r\n";
 
     memset(response, '0', sizeof(response));
 
@@ -28,19 +32,23 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    server = gethostbyname(hostname);
+    if (server == NULL) error("ERROR, no such host");
+
     memset(&addr, '0', sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(portno);
+    memcpy(&addr.sin_addr.s_addr, server->h_addr, server->h_length);
 
-    if (inet_pton(AF_INET, hostname, &addr.sin_addr) <= 0) {
-        printf("\n inet_pton error occurred\n");
-        return 1;
-    }
+    sprintf(request, request_fmt);
+    printf("Request:: \n%s\n", request);
 
     if (connect(sockfd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         printf("\n Error : Connect Failed \n");
         return 1;
     }
+
+    printf("\n [Info] Connect Succeeded!!! \n");
 
     int total = strlen(request);
     int sent = 0;
@@ -56,18 +64,30 @@ int main(int argc, char *argv[]) {
         }
         sent += bytes;
     } while (sent < total);
+
+    printf("\n [Info] Write Succeeded!!! \n");
+
+    memset(response, 0, sizeof(response));
+    total = sizeof(response) - 1;
     int received = 0;
+    printf("\n [Info] Read Start!!! \n");
 
     do {
         bytes = read(sockfd, response + received, total - received);
+
         if (bytes < 0) {
             error("ERROR reading response from socket");
         }
+
         if (bytes == 0) {
             break;
         }
+
         received += bytes;
+        printf("\n [Info] Read Start!!! \n");
     } while (received < total);
+
+    printf("\n [Info] Read Succeeded!!! \n");
 
     if (received == total) {
         error("ERROR storing complete response from socket");
