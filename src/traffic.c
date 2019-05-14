@@ -12,6 +12,7 @@
 
 #include "traffic.h"
 #include "const.h"
+#include "util/thread_pool.h"
 
 void error(const char *msg) {
     perror(msg);
@@ -19,6 +20,15 @@ void error(const char *msg) {
 }
 
 int main(int argc, char *argv[]) {
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    thread_pool_t *thread_pool = thread_pool_create(4, 4, 10, NULL);
+    thread_pool_queue(thread_pool, send_request, NULL);
+    thread_pool_wait(thread_pool);
+    thread_pool_destroy(thread_pool);
+}
+
+void *send_request() {
     int portno = 10172;
     int sockfd = 0, n = 0;
     struct hostent *server;
@@ -31,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Error : Could not create socket \n");
-        return 1;
+        return NULL;
     }
 
     server = gethostbyname(hostname);
@@ -42,12 +52,12 @@ int main(int argc, char *argv[]) {
     addr.sin_port = htons(portno);
     memcpy(&addr.sin_addr.s_addr, server->h_addr, server->h_length);
 
-    sprintf(request, request_fmt);
+    strcpy(request, request_fmt);
     printf("Request:: \n%s\n", request);
 
     if (connect(sockfd, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
         printf("\n Error : Connect Failed \n");
-        return 1;
+        return NULL;
     }
 
     printf("\n [Info] Connect Succeeded!!! \n");
@@ -86,10 +96,10 @@ int main(int argc, char *argv[]) {
         }
 
         received += bytes;
-        printf("\n [Info] Read Start!!! \n");
+        printf("\n [Info] Read Start!!! - %d\n", received);
     } while (received < total);
 
-    printf("\n [Info] Read Succeeded!!! \n");
+    printf("\n [Info] Read Succeeded!!! - %d\n", received);
 
     if (received == total) {
         error("ERROR storing complete response from socket");
@@ -99,5 +109,5 @@ int main(int argc, char *argv[]) {
 
     printf("Response: \n%s\n", response);
 
-    return 0;
+    return NULL;
 }
